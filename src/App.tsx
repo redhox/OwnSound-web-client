@@ -21,7 +21,7 @@ import SearchResultView  from "./components/recherche";
 import LikeExplorerView from "./components/like";
 import LikeTrack from "@/components/likeTrack"
 import AppSidebar  from "@/components/Sidebar";
-
+import UserManagementView from "@/components/UserManagementView";
 
 
 
@@ -84,11 +84,11 @@ export default function App() {
       <Search className="w-4 h-4" />
     </Button>
   </div>
-
+  <Button onClick={() => setView("account")}>Mon compte</Button>
   <div className="flex items-center gap-4">
   {user && (
     <div className="text-sm text-muted-foreground">
-      {user.username} · #{user.id}
+      {user.username} · #{user.id} · {user.role}
     </div>
   )}
 <Button
@@ -121,6 +121,8 @@ export default function App() {
 
             {view === "playlistslike" && <LikeExplorerView showPlaylists />}
             {view === "playlistsView"  && <PlaylistView  playlistId={selectedPlaylistId} />}
+
+            {view === "account" && <UserManagementView />}
 
 
             <AudioPlayer  ref={audioRef}  />
