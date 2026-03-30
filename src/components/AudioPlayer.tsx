@@ -14,8 +14,10 @@ type ApiTrack = {
   albumName: string;
   albumId: number;
   artistId: number;
+  artistName: string;
   like: boolean;
   path: string;
+  coverSmall: string;
 };
 
 
@@ -136,13 +138,106 @@ const AudioPlayer = forwardRef<AudioPlayerHandle>(({ }, ref) => {
   };
 
   useEffect(() => {
+    if ("mediaSession" in navigator && track) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: track.title,
+        artist: track.artistName,
+        album: track.albumName,
+        artwork: [
+          { src: track.coverSmall, sizes: "96x96", type: "image/jpeg" },
+          { src: track.coverSmall, sizes: "128x128", type: "image/jpeg" },
+          { src: track.coverSmall, sizes: "192x192", type: "image/jpeg" },
+          { src: track.coverSmall, sizes: "256x256", type: "image/jpeg" },
+          { src: track.coverSmall, sizes: "384x384", type: "image/jpeg" },
+          { src: track.coverSmall, sizes: "512x512", type: "image/jpeg" },
+        ],
+      });
+      document.title = `${track.title} - ${track.artistName}`;
+    } else if (!track) {
+      document.title = "Music Player";
+    }
+  }, [track]);
+
+  useEffect(() => {
+    if ("mediaSession" in navigator) {
+      navigator.mediaSession.setActionHandler("play", () => {
+        setIsPlaying(true);
+      });
+      navigator.mediaSession.setActionHandler("pause", () => {
+        setIsPlaying(false);
+      });
+      navigator.mediaSession.setActionHandler("previoustrack", () => {
+        playPrev();
+      });
+      navigator.mediaSession.setActionHandler("nexttrack", () => {
+        playNext();
+      });
+      navigator.mediaSession.setActionHandler("seekto", (details) => {
+        if (details.seekTime !== undefined && audioRef.current) {
+          audioRef.current.currentTime = details.seekTime;
+          setCurrentTime(details.seekTime);
+        }
+      });
+      navigator.mediaSession.setActionHandler("seekbackward", (details) => {
+        const skipTime = details.seekOffset || 10;
+        audioRef.current.currentTime = Math.max(audioRef.current.currentTime - skipTime, 0);
+      });
+      navigator.mediaSession.setActionHandler("seekforward", (details) => {
+        const skipTime = details.seekOffset || 10;
+        audioRef.current.currentTime = Math.min(
+          audioRef.current.currentTime + skipTime,
+          audioRef.current.duration
+        );
+      });
+    }
+    return () => {
+      if ("mediaSession" in navigator) {
+        navigator.mediaSession.setActionHandler("play", null);
+        navigator.mediaSession.setActionHandler("pause", null);
+        navigator.mediaSession.setActionHandler("previoustrack", null);
+        navigator.mediaSession.setActionHandler("nexttrack", null);
+        navigator.mediaSession.setActionHandler("seekto", null);
+        navigator.mediaSession.setActionHandler("seekbackward", null);
+        navigator.mediaSession.setActionHandler("seekforward", null);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if ("mediaSession" in navigator) {
+      navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+    }
+  }, [isPlaying]);
+
+  useEffect(() => {
+    if ("mediaSession" in navigator && "setPositionState" in navigator.mediaSession) {
+      try {
+        navigator.mediaSession.setPositionState({
+          duration: duration || 0,
+          playbackRate: audioRef.current.playbackRate || 1,
+          position: currentTime || 0,
+        });
+      } catch (err) {
+        console.warn("Could not update media session position state:", err);
+      }
+    }
+  }, [currentTime, duration]);
+
+  useEffect(() => {
     if (currentId == null) return;
-    const found = queueTracks.find(t => t.id === currentId);
-    if (found) { setTrack(found); return; }
+    const found = queueTracks.find((t) => t.id === currentId);
+    if (found) {
+      setTrack(found);
+      return;
+    }
 
     let cancelled = false;
-    fetchTracks([currentId]).then(list => { if (!cancelled && list.length) setTrack(list[0]); });
-    return () => { cancelled = true; };
+    fetchTrackByListID([currentId]).then((list) => {
+      if (!cancelled && list.length) setTrack(list[0]);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [currentId, queueTracks]);
 
   useEffect(() => {
@@ -169,8 +264,13 @@ const AudioPlayer = forwardRef<AudioPlayerHandle>(({ }, ref) => {
     };
   }, [track?.path]);
 
-  useEffect(() => { audioRef.current.volume = volume; }, [volume]);
-  useEffect(() => { if (isPlaying) audioRef.current.play(); else audioRef.current.pause(); }, [isPlaying]);
+  useEffect(() => {
+    audioRef.current.volume = volume;
+  }, [volume]);
+  useEffect(() => {
+    if (isPlaying) audioRef.current.play();
+    else audioRef.current.pause();
+  }, [isPlaying]);
 
   const playNext = () => {
     const q = queueIdsRef.current;
@@ -189,28 +289,39 @@ const AudioPlayer = forwardRef<AudioPlayerHandle>(({ }, ref) => {
   };
 
   const playPrev = () => {
-    if (!queueIds.length || currentId == null) return;
-    const index = queueIds.indexOf(currentId);
-    const prev = queueIds[index - 1];
-    if (prev != null) setCurrentId(prev);
+    const q = queueIdsRef.current;
+    const curr = currentIdRef.current;
+    if (!q.length || curr == null) return;
+    const index = q.indexOf(curr);
+    const prev = q[index - 1];
+    if (prev != null) {
+      setCurrentId(prev);
+      setIsPlaying(true);
+    }
   };
 
   const togglePlay = () => {
     if (!audioRef.current) return;
     if (isPlaying) audioRef.current.pause();
     else audioRef.current.play();
-    setIsPlaying(v => !v);
+    setIsPlaying((v) => !v);
   };
 
   return (
     <Card className="fixed bottom-0 left-0 w-full rounded-none shadow-md z-40 p-2">
       <CardContent className="flex flex-col md:flex-row items-center justify-between p-0">
         <div className="flex flex-col w-100 rounded-sm">
-          <div className="font-bold cursor-pointer rounded-sm" onClick={() => track?.albumId && openAlbum(track.albumId)}>
+          <div
+            className="font-bold cursor-pointer rounded-sm"
+            onClick={() => track?.albumId && openAlbum(track.albumId)}
+          >
             {track?.title ?? ""}
           </div>
-          <div className="text-sm cursor-pointer" onClick={() => track?.artistId && openArtist(track.artistId)}>
-            {track?.albumName ?? ""}
+          <div
+            className="text-sm cursor-pointer"
+            onClick={() => track?.artistId && openArtist(track.artistId)}
+          >
+            {track?.artistName ?? ""}
           </div>
         </div>
 
