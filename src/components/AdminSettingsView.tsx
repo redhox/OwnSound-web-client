@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Select, SelectTrigger, SelectContent, SelectItem } from "./ui/select";
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "./ui/select";
 import { AlertCircle, Check, Copy, Shield, RefreshCw, Database, Save, X, Key, Image as ImageIcon } from "lucide-react";
 import { fetchLibraries, updateLibrary, createLibrary, fetchGenerateToken, scanBucket, scanArtistImages } from "../api/user";
 
@@ -64,12 +64,13 @@ export default function AdminSettingsView() {
     }
   };
 
-  const handleUpdateLibrary = async (index: number) => {
+  const handleUpdateLibrary = async (idx: number) => {
     setLibLoading(true);
     setLibSuccess("");
     setLibError("");
     try {
-      await updateLibrary(token!, index, libraries[index]);
+      const lib = libraries[idx];
+      await updateLibrary(token!, lib.id, lib);
       setLibSuccess("Librairie mise à jour avec succès !");
       setTimeout(() => setLibSuccess(""), 3000);
     } catch (err: any) {
