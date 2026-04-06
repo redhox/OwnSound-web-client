@@ -5,7 +5,7 @@ export async function fetchArtistLike() {
   const token = getToken();
   if (!token) throw new Error("UNAUTHORIZED");
 
-  const res = await fetch(`${import.meta.env.VITE_API_URL}/artistLike`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || "/api-backend"}/artistLike`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -23,7 +23,7 @@ export async function fetchAllArtist() {
   const token = getToken();
   if (!token) throw new Error("UNAUTHORIZED");
 
-  const res = await fetch(`${import.meta.env.VITE_API_URL}/allArtist`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || "/api-backend"}/allArtist`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

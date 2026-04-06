@@ -9,7 +9,7 @@ export async function fetchGetPlaylist(playlistId: number) {
   const token = getToken();
   if (!token) throw new Error("UNAUTHORIZED");
 
-  const res = await fetch(`${import.meta.env.VITE_API_URL}/get_playlist`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || "/api-backend"}/get_playlist`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -33,7 +33,7 @@ export async function updatePlaylistTracks(
 ) {
   const token = getToken();
   if (!token) throw new Error("UNAUTHORIZED");
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/playlist/update_tracks`, {
+  const response = await fetch(`${import.meta.env.VITE_API_URL || "/api-backend"}/playlist/update_tracks`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -55,36 +55,11 @@ export async function updatePlaylistTracks(
 }
 
 
-export async function listPlaylistById(
-    ids: number[],
-  ) {
-    const token = getToken();
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/playlist/update_tracks`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        playlist_id,
-        track_ids,
-        action,
-      }),
-    });
-  
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || "Playlist update failed");
-    }
-  
-    return response.json();
-  }
-
 // src/api/playlist.ts
 
 export async function fetchAllPlaylists() {
   const token = getToken();
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/listplaylists`, {
+  const response = await fetch(`${import.meta.env.VITE_API_URL || "/api-backend"}/listplaylists`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -103,7 +78,7 @@ export async function fetchAllPlaylists() {
 /* CREATE PLAYLIST */
 export async function createPlaylist(name: string) {
   const token = getToken();
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/playlist/create`, {
+  const response = await fetch(`${import.meta.env.VITE_API_URL || "/api-backend"}/playlist/create`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -117,4 +92,22 @@ export async function createPlaylist(name: string) {
     }
   
     return response.json(); // { playlist_id }
-  }
+    }
+
+    export async function fetchPlaylistLike() {
+    const token = getToken();
+    if (!token) throw new Error("UNAUTHORIZED");
+
+    const res = await fetch(`${import.meta.env.VITE_API_URL || "/api-backend"}/playlistLike`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    });
+
+    if (res.status === 401) throw new Error("UNAUTHORIZED");
+    if (!res.ok) return []; // Fallback to empty list instead of crashing
+
+    return res.json();
+    }

@@ -19,7 +19,7 @@ export interface SearchResult {
     try {
         const token = getToken();
         if (!token) throw new Error("UNAUTHORIZED");
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/search`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || "/api-backend"}/search`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

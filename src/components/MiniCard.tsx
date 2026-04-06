@@ -1,20 +1,32 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "./ui/button"
-import { Play, Pause, SkipBack, SkipForward, Volume2 ,Plus ,List,Heart, MoreHorizontal} from "lucide-react";
-import AlbumView from "@/components/Album";
-import { useState,useEffect } from "react"
+import { Play, Pause, SkipBack, SkipForward, Volume2, Plus, List, Heart, MoreHorizontal, User, Disc, ListMusic } from "lucide-react";
+import { useState, useEffect } from "react"
 import { updateLike } from "@/api/likes";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
-import { openAlbum,openArtist,openPlaylist } from  "@/components/onOpen"
+import { openAlbum, openArtist, openPlaylist } from "@/components/onOpen"
 import { triggerPlay } from "@/components/onPlay";
-import { fetchGet_album,fetchAlbumsByList } from "@/api/album";
+import { fetchGet_album, fetchAlbumsByList, fetchAlbumsByArtist } from "@/api/album";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+
 type CardAlbumProps = {
   image: string
   title: string
   like: boolean
   albumId: number
   artistId: number
-  artistName: string[]
+  artistName: string | string[]
 }
 
 export function CardAlbum({
@@ -25,189 +37,214 @@ export function CardAlbum({
   artistId,
   like,
 }: CardAlbumProps) {
-  const [album, setAlbum] = useState<AlbumData | null>(null);
-  const [openMenu, setOpenMenu] = useState(false);
+  const [isLiked, setIsLiked] = useState(like);
 
-  const handleClick = () => {
-    openAlbum(albumId); // pas de '?.'
-  };
-  
-  const handleArtistClick = () => {
-    openArtist(artistId); // pas de '?.'
-  };
-  
-
-  const handlePlayClick = async () => {
+  const handlePlayClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     const albumData = await fetchGet_album(albumId);
-    setAlbum(albumData);
     if (!albumData.listMusique?.length) return;
-
-    const firstTrack = albumData.listMusique[0];
-    const allTrackIds = albumData.listMusique.map(t => t.id);
-
-    triggerPlay(firstTrack.id, allTrackIds, "play");
+    const allTrackIds = albumData.listMusique.map((t: any) => t.id);
+    triggerPlay(allTrackIds[0], allTrackIds, "play");
   };
-  const handleQueueClick = async () => {
-    const albumData: AlbumData = await fetchGet_album(albumId);
-    setAlbum(albumData);
+
+  const handleQueueClick = async (e: React.MouseEvent, mode: "queue" | "queueNext") => {
+    e.stopPropagation();
+    const albumData = await fetchGet_album(albumId);
     if (!albumData.listMusique?.length) return;
-  
-    const allTrackIds = albumData.listMusique.map(t => t.id);
-  
-    triggerPlay(null, allTrackIds, "queue");
+    const allTrackIds = albumData.listMusique.map((t: any) => t.id);
+    triggerPlay(null, allTrackIds, mode);
   };
-  const handleQueueNextClick = async () => {
-    const albumData: AlbumData = await fetchGet_album(albumId);
-    setAlbum(albumData);
-    if (!albumData.listMusique?.length) return;
-  
-    const allTrackIds = albumData.listMusique.map(t => t.id);
-  
-    triggerPlay(null, allTrackIds, "queueNext");
-  }; 
+
+  const toggleLike = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newLike = !isLiked;
+    setIsLiked(newLike);
+    try {
+      await updateLike(albumId, newLike, "album");
+    } catch (err) {
+      console.error(err);
+      setIsLiked(!newLike);
+    }
+  };
+
   return (
-    <Card className="h-60 w-55 flex-shrink-0 p-1 rounded-sm">
-      <CardContent className="p-1 flex flex-col space-y-1 relative group">
-        <div className="relative h-45 w-full rounded-sm overflow-hidden cursor-pointer">
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url('${image}')` }}
-            onClick={handleClick}
-          />
-
-          {/* PLAY */}
-          <button
-            className="absolute bottom-2 left-2 w-8 h-8 flex items-center justify-center rounded-full bg-black/70 hover:bg-black "
-            onClick={handlePlayClick}
-          >
-            <Play className="w-4 h-4 text-white" />
-          </button>
-
-          {/* MENU */}
-          <div className="absolute bottom-2 left-12">
-            <button
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-black/70 hover:bg-black"
-              onClick={() => setOpenMenu(v => !v)}
-            >
-              <MoreHorizontal className="w-4 h-4 text-white" />
-            </button>
-            {openMenu && (
-              <div className="absolute bottom-10 left-0 w-48 max-h-64 z-50">
-                <Card className="shadow-lg rounded-md bg-black/80 backdrop-blur">
-                    <button
-                      className="w-full text-left px-2 py-1 hover:bg-white/10"
-                      onClick={handleQueueNextClick}
-                    >
-                      ajoute a la suite
-                    </button>
-                    <button
-                      className="w-full text-left px-2 py-1 hover:bg-white/10"
-                      onClick={handleQueueClick}
-                    >
-                      ajoute a la liste de lecture
-                    </button>
-
-                </Card>
-              </div>
-            )}
-          </div>
-          {/* LIKE */}
-          <button
-            className="absolute bottom-2 left-22 w-8 h-8 flex items-center justify-center rounded-full bg-black/70 hover:bg-black transition-opacity"
-            onClick={() => {
-              // Basculer immédiatement l'état local
-              const newLike = !(album?.like ?? like);
-              setAlbum(prev => prev ? { ...prev, like: newLike } : { ...prev, like: newLike });
-
-              // Mettre à jour le serveur en arrière-plan
-              updateLike(albumId, newLike, "album").catch(err => {
-                console.error(err);
-                // Optionnel : revenir en arrière en cas d'erreur
-                setAlbum(prev => prev ? { ...prev, like: !newLike } : { ...prev, like: !newLike });
-              });
-            }}
-          >
-            <Heart
-              className="w-4 h-4 text-white"
-              fill={(album?.like ?? like) ? "red" : "none"}
-              stroke={(album?.like ?? like) ? "red" : "white"}
+    <TooltipProvider>
+      <Card className="w-full flex-shrink-0 group overflow-hidden border-none bg-transparent hover:bg-accent/10 transition-colors cursor-pointer" onClick={() => openAlbum(albumId)}>
+        <CardContent className="p-0 space-y-3">
+          <div className="relative aspect-square w-full rounded-md overflow-hidden shadow-lg">
+            <div
+              className="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-105"
+              style={{ backgroundImage: `url('${image}')` }}
             />
-          </button>
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon"
+                    className="rounded-full h-10 w-10 bg-primary text-primary-foreground hover:scale-110 transition-transform"
+                    onClick={handlePlayClick}
+                  >
+                    <Play className="h-5 w-5 fill-current" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>Lire l'album</p></TooltipContent>
+              </Tooltip>
 
+              <div className="absolute bottom-3 right-3 flex gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 rounded-full bg-black/50 text-white hover:bg-black/70"
+                      onClick={toggleLike}
+                    >
+                      <Heart className={`h-4 w-4 ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent><p>{isLiked ? "Retirer des favoris" : "Ajouter aux favoris"}</p></TooltipContent>
+                </Tooltip>
 
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 rounded-full bg-black/50 text-white hover:bg-black/70"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={(e) => handleQueueClick(e, "queueNext")}>
+                      Ajouter à la suite
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={(e) => handleQueueClick(e, "queue")}>
+                      Ajouter à la file d'attente
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          </div>
 
-        </div>
-
-        <span
-          className="text-xs font-medium truncate cursor-pointer hover:underline"
-          onClick={handleClick}
-        >
-          {title}
-        </span>
-
-        {artistName && (
-          <span
-            className="text-xs text-muted-foreground truncate cursor-pointer hover:underline"
-            onClick={handleArtistClick}
-          >
-            {artistName}
-          </span>
-        )}
-      </CardContent>
-    </Card>
+          <div className="flex flex-col px-1 pb-2">
+            <span className="font-semibold text-sm truncate group-hover:underline">
+              {title}
+            </span>
+            <span
+              className="text-xs text-muted-foreground truncate hover:underline"
+              onClick={(e) => {
+                e.stopPropagation();
+                openArtist(artistId);
+              }}
+            >
+              {artistName}
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+    </TooltipProvider>
   );
 }
-
 
 type CardArtistProps = {
   image: string
   name: string
-  like:boolean
+  like: boolean
   artistId: number
 }
 
-export function CardArtist({ image,like, name,artistId}: CardArtistProps) {
-  const handleClick = () => {
-    if (openArtist) openArtist(artistId)
-  }
-  const [artist, setArtist] = useState<ArtistData | null>(null);
+export function CardArtist({ image, like, name, artistId }: CardArtistProps) {
+  const [isLiked, setIsLiked] = useState(like);
+
+  const toggleLike = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newLike = !isLiked;
+    setIsLiked(newLike);
+    try {
+      await updateLike(artistId, newLike, "artist");
+    } catch (err) {
+      console.error(err);
+      setIsLiked(!newLike);
+    }
+  };
+
+  const handlePlayClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const raw = await fetchAlbumsByArtist(artistId);
+      const albums = Array.isArray(raw.listAlbums) ? raw.listAlbums : [];
+      if (albums.length > 0) {
+        const albumData = await fetchGet_album(albums[0].id);
+        if (albumData?.listMusique?.length) {
+          const ids = albumData.listMusique.map((t: any) => t.id);
+          triggerPlay(ids[0], ids, "play");
+        }
+      }
+    } catch (err) {
+      console.error("Failed to play artist:", err);
+    }
+  };
 
   return (
-    <Card className="flex flex-col items-center w-54 p-1 mr-1 cursor-pointer">
-      <CardContent className="p-0 relative h-45">
-        <div
-          className="h-45 w-45 mt-3 bg-muted rounded-xl flex items-center justify-center relative bg-cover bg-center"
-          style={{ backgroundImage: `url('${image}')` }}
-          onClick={handleClick}
-        >
-        </div>
-        <button
-            className="absolute bottom-2 left-1 w-8 h-8 flex items-center justify-center rounded-full bg-black/70 hover:bg-black transition-opacity"
-            onClick={() => {
-              // Basculer immédiatement l'état local
-              const newLike = !(artist?.like ?? like);
-              setArtist(prev => prev ? { ...prev, like: newLike } : { ...prev, like: newLike });
-
-              // Mettre à jour le serveur en arrière-plan
-              updateLike(artistId, newLike, "artist").catch(err => {
-                console.error(err);
-                // Optionnel : revenir en arrière en cas d'erreur
-                setArtist(prev => prev ? { ...prev, like: !newLike } : { ...prev, like: !newLike });
-              });
-            }}
-          >
-            <Heart
-              className="w-4 h-4 text-white"
-              fill={(artist?.like ?? like) ? "red" : "none"}
-              stroke={(artist?.like ?? like) ? "red" : "white"}
+    <TooltipProvider>
+      <Card
+        className="w-full flex-shrink-0 group overflow-hidden border-none bg-transparent hover:bg-accent/10 transition-colors cursor-pointer"
+        onClick={() => openArtist(artistId)}
+      >
+        <CardContent className="p-0 space-y-3 flex flex-col items-center">
+          <div className="relative aspect-square w-full rounded-full overflow-hidden shadow-lg">
+            <div
+              className="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-105"
+              style={{ backgroundImage: `url('${image}')` }}
             />
-          </button>
-      </CardContent>
-      <span className="font-medium text-sm mt-2 text-center truncate">{name}</span>
-    </Card>
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon"
+                    className="rounded-full h-10 w-10 bg-primary text-primary-foreground hover:scale-110 transition-transform"
+                    onClick={handlePlayClick}
+                  >
+                    <Play className="h-5 w-5 fill-current" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>Lire l'artiste</p></TooltipContent>
+              </Tooltip>
+
+              <div className="absolute bottom-3 right-3 flex gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 rounded-full bg-black/50 text-white hover:bg-black/70"
+                      onClick={toggleLike}
+                    >
+                      <Heart className={`h-4 w-4 ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent><p>{isLiked ? "Retirer des favoris" : "Ajouter aux favoris"}</p></TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col px-1 pb-2">
+            <span className="font-semibold text-sm truncate group-hover:underline">
+              {name}
+            </span>
+            <span className="text-xs text-muted-foreground truncate hover:underline" onClick={(e) => { e.stopPropagation(); openArtist(artistId); }}>
+              Artiste
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+    </TooltipProvider>
   )
 }
-
 
 type CardTrackProps = {
   imageLink: string
@@ -215,7 +252,8 @@ type CardTrackProps = {
   trackId: number
   artistName: string
   artistId: number
-  data: { id: number }[]         // ← équivalent de "data" de la table
+  data: { id: number }[]
+  onPlay?: () => void
 }
 
 export function CardTrack({
@@ -225,73 +263,79 @@ export function CardTrack({
   artistId,
   artistName,
   data,
+  onPlay,
 }: CardTrackProps) {
+  const handleClick = () => {
+    if (onPlay) {
+      onPlay();
+    } else {
+      triggerPlay(trackId, data.map(d => d.id), "play");
+    }
+  };
 
   return (
-    <CardContent className="p-1 flex items-center space-x-2 h-0">
-      <div
-        className="w-12 h-12 bg-muted rounded-sm bg-cover bg-center cursor-pointer"
-        style={{ backgroundImage: `url('${imageLink}')` }}
-        onClick={() => triggerPlay(trackId, [trackId],"play")}
-
-      />
-
-      <div className="flex flex-col items-start leading-none">
-        <span
-          className="text-sm font-medium cursor-pointer hover:underline"
-          onClick={() => triggerPlay(trackId, [trackId],"play")}>
+    <div
+      className="flex items-center gap-3 p-2 rounded-md hover:bg-accent group transition-colors cursor-pointer"
+      onClick={handleClick}
+    >
+      <div className="relative h-12 w-12 shrink-0 rounded overflow-hidden shadow">
+        <img src={imageLink} alt={trackName} className="h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <Play className="h-4 w-4 text-white fill-current" />
+        </div>
+      </div>
+      <div className="flex flex-col min-w-0">
+        <span className="font-medium text-sm truncate group-hover:text-primary transition-colors">
           {trackName}
         </span>
         <span
-          className="text-xs text-muted-foreground cursor-pointer hover:underline "
-          onClick={() => openArtist(artistId)}>
+          className="text-xs text-muted-foreground truncate hover:underline"
+          onClick={(e) => {
+            e.stopPropagation();
+            openArtist(artistId);
+          }}
+        >
           {artistName}
         </span>
       </div>
-    </CardContent>
+    </div>
   )
 }
 
-type CardPlaylistProps = {
+export function CardPlaylist({
+  name,
+  playlistId,
+  userName = "Utilisateur",
+}: {
   name: string
   playlistId: number
-}
-
-export function CardPlaylist({ name,playlistId}: CardPlaylistProps) {
-  const handleClick = () => {
-    if (openPlaylist) openPlaylist(playlistId)
-  }
+  userName?: string
+}) {
   return (
-    <Card className="flex flex-col items-center w-54 p-1 mr-1 cursor-pointer">
-      <CardContent className="p-0 relative h-45" onClick={handleClick}>
-        <div
-          className="h-52 w-52 bg-muted rounded-full flex items-center justify-center relative bg-cover bg-center"
-          
-        >
+    <Card
+      className="flex flex-col gap-3 group bg-transparent border-none hover:bg-accent/10 transition-colors p-3 cursor-pointer"
+      onClick={() => openPlaylist(playlistId)}
+    >
+      <div className="relative aspect-square w-full bg-gradient-to-br from-primary/20 to-primary/80 rounded-lg flex items-center justify-center shadow-lg group-hover:scale-[1.02] transition-transform">
+        <ListMusic className="w-16 h-16 text-white/50" />
+        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+           <Play className="w-12 h-12 text-white fill-white/20" />
         </div>
-      </CardContent>
-      <span className="font-medium text-sm mt-2 text-center truncate">{name}</span>
+      </div>
+      <div className="flex flex-col px-1">
+        <span className="font-bold text-sm truncate group-hover:underline">{name}</span>
+        <span className="text-xs text-muted-foreground truncate">Par {userName}</span>
+      </div>
     </Card>
   )
 }
 
-type Album = {
-  id: number
-  name: string
-  cover: string
-  like: boolean
-  artistName: string
-  artistId: number
-}
-
-type CardSectionAlbumProps = {
-  albumsIds: number[]
-}
-
 export function CardSectionAlbum({
   albumsIds,
-}: CardSectionAlbumProps) {
-  const [albums, setAlbums] = useState<Album[]>([])
+}: {
+  albumsIds: number[]
+}) {
+  const [albums, setAlbums] = useState<any[]>([])
 
   useEffect(() => {
     if (!albumsIds.length) return;
@@ -299,21 +343,21 @@ export function CardSectionAlbum({
       .then(setAlbums)
       .catch(() => setAlbums([]));
   }, [albumsIds]);
-  
 
   return (
-    <ScrollArea className="w-full ">
-      <div className="flex space-x-4 min-w-max">
+    <ScrollArea className="w-full whitespace-nowrap">
+      <div className="flex gap-6 pb-4">
         {albums.map(album => (
-          <CardAlbum
-            key={album.id}
-            image={album.cover}
-            title={album.name}
-            like={album.like}
-            artistName={album.artistName}
-            artistId={album.artistId}
-            albumId={album.id}
-          />
+          <div key={album.id} className="w-40 md:w-48 flex-shrink-0">
+            <CardAlbum
+              image={album.cover}
+              title={album.name}
+              like={album.like}
+              artistName={album.artistName}
+              artistId={album.artistId}
+              albumId={album.id}
+            />
+          </div>
         ))}
       </div>
       <ScrollBar orientation="horizontal" />

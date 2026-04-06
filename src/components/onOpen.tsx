@@ -37,3 +37,15 @@ export function registerOpenPlaylist(fn: OpenPlaylistHandler) {
 export function openPlaylist(playlistId: number) {
   playlistHandler?.(playlistId);
 }
+
+// -------------------- Genre --------------------
+type OpenGenreHandler = (genreId: number) => void;
+let genreHandler: OpenGenreHandler | null = null;
+
+export function registerOpenGenre(fn: OpenGenreHandler) {
+  genreHandler = fn;
+}
+
+export function openGenre(genreId: number) {
+  genreHandler?.(genreId);
+}

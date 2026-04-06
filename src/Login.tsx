@@ -6,7 +6,13 @@ import { fetchLogin } from "@/api/user";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default function Login({ onSuccess }: { onSuccess: () => void }) {
+export default function Login({ 
+  onSuccess,
+  onToggleView,
+}: { 
+  onSuccess: () => void;
+  onToggleView: () => void;
+}) {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,7 +30,7 @@ export default function Login({ onSuccess }: { onSuccess: () => void }) {
   }
 
   return (
-    <ThemeProvider attribute="data-theme" defaultTheme="dark">
+    <ThemeProvider storageKey="data-theme" defaultTheme="dark">
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="w-full max-w-sm">
           <CardHeader>
@@ -49,6 +55,9 @@ export default function Login({ onSuccess }: { onSuccess: () => void }) {
             )}
             <Button className="w-full" onClick={handleLogin}>
               Connexion
+            </Button>
+            <Button variant="ghost" className="w-full text-xs" onClick={onToggleView}>
+              Pas encore de compte ? Créer un compte
             </Button>
           </CardContent>
         </Card>
