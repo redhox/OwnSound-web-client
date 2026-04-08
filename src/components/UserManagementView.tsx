@@ -6,12 +6,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { User, Shield, Key, AlertCircle, CheckCircle2 } from "lucide-react";
+import { User, Shield, Key, AlertCircle, CheckCircle2, Trash2, Copy, Check, RefreshCw } from "lucide-react";
 import {
   changeUsername,
   changePassword,
   setUserRole,
   getUserAll,
+  deleteSelfAccount,
+  adminDeleteUser,
+  fetchGenerateToken,
 } from "@/api/user";
 
 type AdminUser = {
@@ -31,10 +34,15 @@ export default function UserManagementView() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [adminMsg, setAdminMsg] = useState("");
 
+  const [generatedToken, setGeneratedToken] = useState<string>("");
+  const [isLoadingToken, setIsLoadingToken] = useState(false);
+  const [tokenError, setTokenError] = useState("");
+  const [copied, setCopied] = useState(false);
+
   const handleChangeUsername = async () => {
-    if (!newUsername) return;
+    if (!newUsername || !token) return;
     try {
-      const data = await changeUsername(token, newUsername);
+      const data = await changeUsername(token!, newUsername);
       setStatusMsg({ type: "success", text: `Nom mis à jour: ${data.username}` });
       setNewUsername("");
     } catch (err: any) {
@@ -43,9 +51,9 @@ export default function UserManagementView() {
   };
 
   const handleChangePassword = async () => {
-    if (!newPassword) return;
+    if (!newPassword || !token) return;
     try {
-      await changePassword(token, newPassword);
+      await changePassword(token!, newPassword);
       setStatusMsg({ type: "success", text: "Mot de passe mis à jour avec succès" });
       setNewPassword("");
     } catch (err: any) {
@@ -60,8 +68,9 @@ export default function UserManagementView() {
   }, [user?.role]);
 
   const loadUsers = async () => {
+    if (!token) return;
     try {
-      const data = await getUserAll(token);
+      const data = await getUserAll(token!);
       setUsers(data.users);
     } catch (err: any) {
       setAdminMsg(`Erreur: ${err.message}`);
@@ -70,13 +79,58 @@ export default function UserManagementView() {
 
   const handleRoleChange = async (userId: string, role: "user" | "admin") => {
     try {
-      await setUserRole(token, userId, role);
+      await setUserRole(token!, userId, role);
       setUsers((prev) =>
         prev.map((u) => (u.id === userId ? { ...u, role } : u))
       );
     } catch (err: any) {
       setAdminMsg(`Erreur: ${err.message}`);
     }
+  };
+
+  const handleDeleteSelf = async () => {
+    if (!confirm("Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.")) return;
+    try {
+      await deleteSelfAccount(token!);
+      window.location.href = "/login"; // Logout
+    } catch (err: any) {
+      setStatusMsg({ type: "error", text: `Erreur: ${err.message}` });
+    }
+  };
+
+  const handleAdminDeleteUser = async (userId: string) => {
+    if (!token) return;
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer l'utilisateur #${userId} ? Cette action est irréversible.`)) return;
+    try {
+      await adminDeleteUser(token!, userId);
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
+    } catch (err: any) {
+      setAdminMsg(`Erreur: ${err.message}`);
+    }
+  };
+
+  const handleGenerateToken = async () => {
+    setIsLoadingToken(true);
+    setTokenError("");
+    setGeneratedToken("");
+    try {
+      const data = await fetchGenerateToken(token!);
+      setGeneratedToken(data.token || data.registration_token || "");
+      if (!data.token && !data.registration_token) {
+        setTokenError("Erreur: Aucun token retourné par le serveur.");
+      }
+    } catch (err: any) {
+      setTokenError(`Erreur lors de la génération: ${err.message}`);
+    } finally {
+      setIsLoadingToken(false);
+    }
+  };
+
+  const copyToClipboard = () => {
+    if (!generatedToken) return;
+    navigator.clipboard.writeText(generatedToken);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -148,6 +202,23 @@ export default function UserManagementView() {
                 <Button onClick={handleChangePassword} variant="secondary" size="sm" className="ml-auto">Mettre à jour</Button>
               </CardFooter>
             </Card>
+
+            <Card className="border-border/40 shadow-sm md:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-destructive">
+                  <Trash2 className="w-5 h-5" /> Zone de danger
+                </CardTitle>
+                <CardDescription>Supprimez définitivement votre compte et toutes ses données.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Une fois votre compte supprimé, il n'y a pas de retour en arrière possible. Vos favoris, vos playlists et votre historique seront définitivement supprimés.
+                </p>
+              </CardContent>
+              <CardFooter className="bg-destructive/5 border-t border-destructive/10 py-3">
+                <Button onClick={handleDeleteSelf} variant="destructive" size="sm" className="ml-auto">Supprimer mon compte</Button>
+              </CardFooter>
+            </Card>
           </div>
 
           {statusMsg.text && (
@@ -164,6 +235,61 @@ export default function UserManagementView() {
 
         {user?.role === "admin" && (
           <TabsContent value="admin" className="mt-6 space-y-6">
+            <Card className="border-border/40 shadow-sm overflow-hidden">
+              <CardHeader className="bg-primary/5 border-b border-border/40">
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-primary" /> Invitation Utilisateur
+                </CardTitle>
+                <CardDescription>
+                  Générez un jeton d'inscription à usage unique pour permettre à un nouvel utilisateur de créer son compte.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6 space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <Button 
+                      onClick={handleGenerateToken} 
+                      disabled={isLoadingToken}
+                      className="gap-2 rounded-full"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${isLoadingToken ? "animate-spin" : ""}`} />
+                      Générer un jeton
+                    </Button>
+                  </div>
+
+                  {generatedToken && (
+                    <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
+                      <p className="text-sm font-medium text-muted-foreground">Jeton d'inscription généré :</p>
+                      <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border border-border/40 font-mono text-sm break-all relative group">
+                        <span className="flex-1">{generatedToken}</span>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={copyToClipboard}
+                          className="shrink-0 h-8 w-8"
+                        >
+                          {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                        </Button>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground italic">
+                        Ce jeton est confidentiel et permet l'accès à la création de compte.
+                      </p>
+                    </div>
+                  )}
+
+                  {tokenError && (
+                    <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm flex items-center gap-2">
+                      <Key className="w-4 h-4 shrink-0" />
+                      {tokenError}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+              <CardFooter className="bg-muted/5 border-t border-border/40 text-[11px] text-muted-foreground">
+                Note: Les jetons expirent généralement après une utilisation ou une période définie par le serveur.
+              </CardFooter>
+            </Card>
+
             <Card className="border-border/40 shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div className="space-y-1">
@@ -180,7 +306,8 @@ export default function UserManagementView() {
                         <TableHead className="w-16">ID</TableHead>
                         <TableHead>Nom d'utilisateur</TableHead>
                         <TableHead>Email</TableHead>
-                        <TableHead className="text-right">Rôle</TableHead>
+                        <TableHead>Rôle</TableHead>
+                        <TableHead className="w-20 text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -189,21 +316,32 @@ export default function UserManagementView() {
                           <TableCell className="font-mono text-xs text-muted-foreground">#{u.id}</TableCell>
                           <TableCell className="font-medium">{u.username}</TableCell>
                           <TableCell className="text-muted-foreground text-sm">{u.email}</TableCell>
-                          <TableCell className="text-right">
+                           <TableCell>
                             <Select
-                              value={u.role}
-                              onValueChange={(val: "user" | "admin") => handleRoleChange(u.id, val)}
-                            >
-                              <SelectTrigger className="w-32 ml-auto h-8 text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="user">Utilisateur</SelectItem>
-                                <SelectItem value="admin">Administrateur</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                        </TableRow>
+                                value={u.role}
+                                onValueChange={(val: "user" | "admin") => handleRoleChange(u.id, val)}
+                              >
+                                <SelectTrigger className="w-32 h-8 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="user">Utilisateur</SelectItem>
+                                  <SelectItem value="admin">Administrateur</SelectItem>
+                                </SelectContent>
+                              </Select>
+                           </TableCell>
+                           <TableCell className="text-right">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                               onClick={() => handleAdminDeleteUser(u.id)}
+                                disabled={String(u.id) === String(user?.id)} // Don't let admin delete themselves here to avoid mistakes (they can use the profile tab instead)
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                           </TableCell>
+                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>

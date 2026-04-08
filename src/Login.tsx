@@ -36,29 +36,37 @@ export default function Login({
           <CardHeader>
             <CardTitle className="text-center">Connexion</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <Input
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <Input
-              type="password"
-              placeholder="Mot de passe"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            {error && (
-              <p className="text-sm text-destructive text-center">
-                {error}
-              </p>
-            )}
-            <Button className="w-full" onClick={handleLogin}>
-              Connexion
-            </Button>
-            <Button variant="ghost" className="w-full text-xs" onClick={onToggleView}>
-              Pas encore de compte ? Créer un compte
-            </Button>
+          <CardContent>
+            <form 
+              className="space-y-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleLogin();
+              }}
+            >
+              <Input
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <Input
+                type="password"
+                placeholder="Mot de passe"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              {error && (
+                <p className="text-sm text-destructive text-center">
+                  {error}
+                </p>
+              )}
+              <Button type="submit" className="w-full">
+                Connexion
+              </Button>
+              <Button type="button" variant="ghost" className="w-full text-xs" onClick={onToggleView}>
+                Pas encore de compte ? Créer un compte
+              </Button>
+            </form>
           </CardContent>
         </Card>
       </div>

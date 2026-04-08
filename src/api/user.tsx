@@ -257,3 +257,27 @@ export async function fetchUserHistory(token: string) {
   if (!res.ok) throw new Error("FETCH_HISTORY_FAILED");
   return res.json();
 }
+
+export async function deleteSelfAccount(token: string) {
+  const res = await fetch(`${API_URL}/user`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) throw new Error("DELETE_SELF_FAILED");
+  return res.json();
+}
+
+export async function adminDeleteUser(token: string, userId: string) {
+  const res = await fetch(`${API_URL}/admin/user/${userId}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) throw new Error("ADMIN_DELETE_USER_FAILED");
+  return res.json();
+}

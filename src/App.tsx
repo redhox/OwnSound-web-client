@@ -37,7 +37,13 @@ import {
 import { Separator } from "@/components/ui/separator";
 
 export default function App() {
-  const { user, logout } = useAuth()
+  const { user, token, logout } = useAuth()
+  
+  if (!user || !token) {
+    logout()
+    return null
+  }
+
   const [search, setSearch] = useState("");
   const audioRef = useRef<AudioPlayerHandle>(null);
 
@@ -114,7 +120,7 @@ export default function App() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-9 w-9 md:h-10 md:w-10 rounded-full p-0 overflow-hidden border border-border/40 hover:bg-muted transition-colors">
                        <div className="bg-primary/20 w-full h-full flex items-center justify-center font-bold text-primary text-xs md:text-sm">
-                          {user?.username?.[0].toUpperCase()}
+                          {user.username[0].toUpperCase()}
                        </div>
                     </Button>
                   </DropdownMenuTrigger>
@@ -153,7 +159,7 @@ export default function App() {
             </header>
 
             {/* Main Content Area */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 pb-32 md:pb-36 custom-scrollbar">
               <div className="max-w-[1600px] mx-auto w-full">
                 {view === "likeTrack" && <LikeTrack />}
                 {view === "playlist" && <PlaylistTracksTable />}

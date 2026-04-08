@@ -6,15 +6,17 @@ import SignUp from "./SignUp";
 import { useState } from "react";
 
 function Gate() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [authView, setAuthView] = useState<"login" | "signup">("login");
 
-  if (token) return <App />;
+  if (token && user) return <App />;
 
-  return authView === "login" ? (
+  if (authView === "signup") {
+    return <SignUp onBackToLogin={() => setAuthView("login")} />;
+  }
+
+  return (
     <Login onSuccess={() => {}} onToggleView={() => setAuthView("signup")} />
-  ) : (
-    <SignUp onBackToLogin={() => setAuthView("login")} />
   );
 }
 

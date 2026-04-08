@@ -7,16 +7,11 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "./ui/select";
-import { AlertCircle, Check, Copy, Shield, RefreshCw, Database, Save, X, Key, Image as ImageIcon } from "lucide-react";
-import { fetchLibraries, updateLibrary, createLibrary, fetchGenerateToken, scanBucket, scanArtistImages, deleteLibrary } from "../api/user";
+import { AlertCircle, Check, RefreshCw, Database, Save, X, Image as ImageIcon } from "lucide-react";
+import { fetchLibraries, updateLibrary, createLibrary, scanBucket, scanArtistImages, deleteLibrary } from "../api/user";
 
 export default function AdminSettingsView() {
   const { token, user } = useAuth();
-  const [generatedToken, setGeneratedToken] = useState<string>("");
-  const [isLoadingToken, setIsLoadingToken] = useState(false); // Renamed for clarity
-  const [tokenError, setTokenError] = useState(""); // Renamed for clarity
-  const [copied, setCopied] = useState(false);
-
   // Libraries state
   const [libraries, setLibraries] = useState<any[]>([]);
   const [libLoading, setLibLoading] = useState(false);
@@ -136,30 +131,6 @@ export default function AdminSettingsView() {
     }
   };
 
-  const handleGenerateToken = async () => {
-    setIsLoadingToken(true); // Use renamed state
-    setTokenError(""); // Use renamed state
-    setGeneratedToken("");
-    try {
-      const data = await fetchGenerateToken(token!);
-      setGeneratedToken(data.token || data.registration_token || ""); // Ensure it's set even if message is empty
-      if (!data.token && !data.registration_token) {
-         setTokenError("Erreur: Aucun token retourné par le serveur."); // Use renamed state
-      }
-    } catch (err: any) {
-      setTokenError(`Erreur lors de la génération: ${err.message}`); // Use renamed state
-    } finally {
-      setIsLoadingToken(false); // Use renamed state
-    }
-  };
-
-  const copyToClipboard = () => {
-    if (!generatedToken) return;
-    navigator.clipboard.writeText(generatedToken);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   // Handle bucket scan
   const handleScanBucket = async (libraryId?: number) => {
     console.log("AdminSettingsView: Requesting scan for libraryId:", libraryId, "Mode:", scanMode);
@@ -228,62 +199,6 @@ export default function AdminSettingsView() {
         </div>
 
         <div className="grid gap-6">
-          {/* Invitation Token Section */}
-          <Card className="border-border/40 shadow-sm overflow-hidden">
-            <CardHeader className="bg-primary/5 border-b border-border/40">
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-primary" /> Invitation Utilisateur
-              </CardTitle>
-              <CardDescription>
-                Générez un jeton d'inscription à usage unique pour permettre à un nouvel utilisateur de créer son compte.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6 space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <Button 
-                    onClick={handleGenerateToken} 
-                    disabled={isLoadingToken}
-                    className="gap-2 rounded-full"
-                  >
-                    <RefreshCw className={`w-4 h-4 ${isLoadingToken ? "animate-spin" : ""}`} />
-                    Générer un jeton
-                  </Button>
-                </div>
-
-                {generatedToken && (
-                  <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
-                    <p className="text-sm font-medium text-muted-foreground">Jeton d'inscription généré :</p>
-                    <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border border-border/40 font-mono text-sm break-all relative group">
-                      <span className="flex-1">{generatedToken}</span>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={copyToClipboard}
-                        className="shrink-0 h-8 w-8"
-                      >
-                        {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                      </Button>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground italic">
-                      Ce jeton est confidentiel et permet l'accès à la création de compte.
-                    </p>
-                  </div>
-                )}
-
-                {tokenError && (
-                  <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm flex items-center gap-2">
-                    <Key className="w-4 h-4 shrink-0" />
-                    {tokenError}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-            <CardFooter className="bg-muted/5 border-t border-border/40 text-[11px] text-muted-foreground">
-              Note: Les jetons expirent généralement après une utilisation ou une période définie par le serveur.
-            </CardFooter>
-          </Card>
-
           {/* Libraries management section */}
           <div className="grid gap-6 mt-8">
             <div className="flex flex-col gap-1">

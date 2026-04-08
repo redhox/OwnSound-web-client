@@ -1,5 +1,5 @@
 // AuthContext.tsx
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 
 type User = {
   id: number
@@ -21,12 +21,25 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 let globalGetToken: (() => string | null) | null = null;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [token, setToken] = useState<string | null>(
-    localStorage.getItem("token")
-  )
-  const [user, setUser] = useState<User | null>(
-    JSON.parse(localStorage.getItem("user") || "null")
-  )
+  const [token, setToken] = useState<string | null>(localStorage.getItem("token"))
+  const [user, setUser] = useState<User | null>(() => {
+    const savedUser = localStorage.getItem("user")
+    if (!savedUser) return null
+    try {
+      return JSON.parse(savedUser)
+    } catch {
+      return null
+    }
+  })
+
+  // Synchronisation au montage
+  useEffect(() => {
+    const savedToken = localStorage.getItem("token")
+    const savedUser = localStorage.getItem("user")
+    if (!savedToken || !savedUser) {
+      logout()
+    }
+  }, [])
 
   function login(token: string, user: User) {
     localStorage.setItem("token", token)

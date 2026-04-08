@@ -55,9 +55,11 @@ const AudioPlayer = forwardRef<AudioPlayerHandle>(({ }, ref) => {
   // refs pour playNext fiable
   const queueIdsRef = useRef<number[]>([]);
   const currentIdRef = useRef<number | null>(null);
+  const isPlayingRef = useRef(false);
 
   useEffect(() => { queueIdsRef.current = queueIds; }, [queueIds]);
   useEffect(() => { currentIdRef.current = currentId; }, [currentId]);
+  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
 
   async function handleLikeClick(id: number, currentLike: boolean, type: "track" | "album" | "artist") {
     try {
@@ -224,6 +226,25 @@ const AudioPlayer = forwardRef<AudioPlayerHandle>(({ }, ref) => {
   }, []);
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === "Space") {
+        const target = e.target as HTMLElement;
+        if (
+          target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable
+        ) {
+          return;
+        }
+        e.preventDefault();
+        togglePlay();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
     if ("mediaSession" in navigator) {
       navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
     }
@@ -341,9 +362,11 @@ const AudioPlayer = forwardRef<AudioPlayerHandle>(({ }, ref) => {
 
   const togglePlay = () => {
     if (!audioRef.current) return;
-    if (isPlaying) audioRef.current.pause();
-    else audioRef.current.play();
-    setIsPlaying((v) => !v);
+    setIsPlaying((prev) => {
+      if (prev) audioRef.current.pause();
+      else audioRef.current.play();
+      return !prev;
+    });
   };
 
   return (

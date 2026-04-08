@@ -51,7 +51,13 @@ export default function SignUp({ onBackToLogin }: { onBackToLogin: () => void })
                 <p className="text-center font-medium">Compte créé avec succès ! Redirection...</p>
               </div>
             ) : (
-              <>
+              <form 
+                className="space-y-4"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleRegister();
+                }}
+              >
                 <div className="space-y-2">
                   <Input
                     placeholder="Nom d'utilisateur"
@@ -88,10 +94,10 @@ export default function SignUp({ onBackToLogin }: { onBackToLogin: () => void })
                     <p>{error}</p>
                   </div>
                 )}
-                <Button className="w-full" onClick={handleRegister} disabled={isLoading}>
+                <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Inscription..." : "S'inscrire"}
                 </Button>
-              </>
+              </form>
             )}
           </CardContent>
           {!success && (
