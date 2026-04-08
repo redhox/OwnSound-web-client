@@ -27,9 +27,9 @@ export default function AppSidebar({ setView, className }: { setView: (v: any) =
   const menuItems = [
     { label: "Accueil", icon: Home, view: "home" },
     { label: "Historique", icon: History, view: "history" },
-    { label: "Titres likés", icon: Heart, view: "likeTrack" },
-    { label: "Artistes favoris", icon: User, view: "artists" },
-    { label: "Albums favoris", icon: Disc, view: "albums" },
+    { label: "Like", icon: Heart, view: "likeTrack" },
+    { label: "Artists", icon: User, view: "artists" },
+    { label: "Albums", icon: Disc, view: "albums" },
     { label: "Playlists", icon: ListMusic, view: "playlistslike" },
   ];
 

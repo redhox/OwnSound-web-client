@@ -118,8 +118,7 @@ export default function AdminSettingsView() {
         aws_endpoint_url: "",
         aws_access_key_id: "",
         aws_secret_access_key: "",
-        url_expiration: 3600,
-        bucket_host: ""
+        url_expiration: 3600
       });
       setShowAddLibraryForm(false);
       
@@ -257,8 +256,7 @@ export default function AdminSettingsView() {
                             aws_endpoint_url: "",
                             aws_access_key_id: "",
                             aws_secret_access_key: "",
-                            url_expiration: 3600,
-                            bucket_host: ""
+                            url_expiration: 3600
                           });
                         } else {
                           setNewLibraryConfig({}); // Clear for other types
@@ -304,13 +302,6 @@ export default function AdminSettingsView() {
                             type="password"
                             value={newLibraryConfig.aws_secret_access_key} 
                             onChange={(e) => handleNewLibraryConfigChange("aws_secret_access_key", e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-2"> {/* Bucket Host */}
-                          <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Bucket Host (URL publique)</label>
-                          <Input 
-                            value={newLibraryConfig.bucket_host} 
-                            onChange={(e) => handleNewLibraryConfigChange("bucket_host", e.target.value)}
                           />
                         </div>
                         <div className="space-y-2"> {/* Expiration URL */}
@@ -402,13 +393,6 @@ export default function AdminSettingsView() {
                             type="password"
                             value={lib.config.aws_secret_access_key} 
                             onChange={(e) => handleConfigChange(idx, "aws_secret_access_key", e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Bucket Host (URL publique)</label>
-                          <Input 
-                            value={lib.config.bucket_host} 
-                            onChange={(e) => handleConfigChange(idx, "bucket_host", e.target.value)}
                           />
                         </div>
                         <div className="space-y-2">

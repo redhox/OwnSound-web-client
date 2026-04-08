@@ -161,13 +161,13 @@ export default function LikeExplorerView({
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-muted/50 p-1 mb-8">
           <TabsTrigger value="tracks" className="gap-2 px-6">
-            <Music className="w-4 h-4" /> Titres
+            <Music className="w-4 h-4" /> Like
           </TabsTrigger>
           <TabsTrigger value="albums" className="gap-2 px-6">
             <Disc className="w-4 h-4" /> Albums
           </TabsTrigger>
           <TabsTrigger value="artists" className="gap-2 px-6">
-            <User className="w-4 h-4" /> Artistes
+            <User className="w-4 h-4" /> Artists
           </TabsTrigger>
           <TabsTrigger value="playlists" className="gap-2 px-6">
             <ListMusic className="w-4 h-4" /> Playlists
