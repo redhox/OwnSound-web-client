@@ -281,3 +281,35 @@ export async function adminDeleteUser(token: string, userId: string) {
   if (!res.ok) throw new Error("ADMIN_DELETE_USER_FAILED");
   return res.json();
 }
+
+export async function fetchForgotPassword(email: string) {
+  const res = await fetch(`${API_URL}/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  if (!res.ok) throw new Error("FORGOT_PASSWORD_FAILED");
+  return res.json();
+}
+
+export async function fetchResetPassword(token: string, password: string) {
+  const res = await fetch(`${API_URL}/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, password }),
+  });
+  if (!res.ok) throw new Error("RESET_PASSWORD_FAILED");
+  return res.json();
+}
+
+export async function fetchActiveResets(token: string) {
+  const res = await fetch(`${API_URL}/admin/active-resets`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) throw new Error("FETCH_ACTIVE_RESETS_FAILED");
+  return res.json();
+}

@@ -9,9 +9,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export default function Login({ 
   onSuccess,
   onToggleView,
+  onToggleForgot,
 }: { 
   onSuccess: () => void;
   onToggleView: () => void;
+  onToggleForgot: () => void;
 }) {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
@@ -63,9 +65,14 @@ export default function Login({
               <Button type="submit" className="w-full">
                 Connexion
               </Button>
-              <Button type="button" variant="ghost" className="w-full text-xs" onClick={onToggleView}>
-                Pas encore de compte ? Créer un compte
-              </Button>
+              <div className="flex flex-col gap-2">
+                <Button type="button" variant="ghost" className="w-full text-xs" onClick={onToggleView}>
+                  Pas encore de compte ? Créer un compte
+                </Button>
+                <Button type="button" variant="link" className="w-full text-xs text-muted-foreground" onClick={onToggleForgot}>
+                  Mot de passe oublié ?
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>

@@ -7,8 +7,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "./ui/select";
-import { AlertCircle, Check, RefreshCw, Database, Save, X, Image as ImageIcon } from "lucide-react";
-import { fetchLibraries, updateLibrary, createLibrary, scanBucket, scanArtistImages, deleteLibrary } from "../api/user";
+import { fetchLibraries, updateLibrary, createLibrary, scanBucket, scanArtistImages, deleteLibrary, fetchActiveResets } from "../api/user";
+import { AlertCircle, Check, RefreshCw, Database, Save, X, Image as ImageIcon, Key } from "lucide-react";
 
 export default function AdminSettingsView() {
   const { token, user } = useAuth();
@@ -41,10 +41,14 @@ export default function AdminSettingsView() {
   const [isScanningArtist, setIsScanningArtist] = useState(false);
   const [artistScanResults, setArtistScanResults] = useState<any>(null);
   const [artistScanError, setArtistScanError] = useState("");
+  // State for active resets
+  const [activeResets, setActiveResets] = useState<any[]>([]);
+  const [resetsLoading, setResetsLoading] = useState(false);
 
   useEffect(() => {
     if (token) {
       loadLibraries();
+      loadActiveResets();
     }
   }, [token]);
 
@@ -161,6 +165,18 @@ export default function AdminSettingsView() {
         setIsScanningArtist(false);
       }
       };
+
+  const loadActiveResets = async () => {
+    setResetsLoading(true);
+    try {
+      const data = await fetchActiveResets(token!);
+      setActiveResets(data.active_resets || []);
+    } catch (err) {
+      console.error("Failed to load active resets", err);
+    } finally {
+      setResetsLoading(false);
+    }
+  };
 
       // Handler to delete a library
       const handleDeleteLibrary = async (id: number, name: string) => {
@@ -589,6 +605,58 @@ export default function AdminSettingsView() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Active Resets Section */}
+            <Card className="border-border/40 shadow-sm overflow-hidden mt-8">
+              <CardHeader className="bg-primary/5 border-b border-border/40">
+                <CardTitle className="flex items-center gap-2">
+                  <Key className="w-5 h-5 text-primary" /> 
+                  Jetons de Récupération Actifs
+                </CardTitle>
+                <CardDescription>
+                  Liste des demandes de réinitialisation de mot de passe en cours. Copiez le lien pour l'envoyer manuellement à l'utilisateur.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6">
+                {resetsLoading ? (
+                  <div className="flex justify-center p-4">
+                    <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : activeResets.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4 italic">Aucune demande en cours.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {activeResets.map((reset, i) => (
+                      <div key={i} className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-muted/30 rounded-lg border border-border/40 gap-4">
+                        <div className="space-y-1">
+                          <p className="font-bold text-sm">{reset.username} ({reset.email})</p>
+                          <p className="text-xs text-muted-foreground">Expire le : {new Date(reset.expiry).toLocaleString()}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                           <Input 
+                             readOnly 
+                             value={`${window.location.origin}/?reset_token=${reset.token}`} 
+                             className="text-xs font-mono h-8 bg-background" 
+                             onClick={(e) => (e.target as HTMLInputElement).select()}
+                           />
+                           <Button 
+                             size="sm" 
+                             className="h-8 rounded-full"
+                             onClick={() => {
+                               navigator.clipboard.writeText(`${window.location.origin}/?reset_token=${reset.token}`);
+                               alert("Lien copié !");
+                             }}
+                           >
+                             Copier
+                           </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
           </div>
         </div>
       </div>
