@@ -209,14 +209,26 @@ export async function fetchLibraries(token: string) {
   return res.json();
 }
 
-export async function scanBucket(token: string, libraryId?: number) {
+export async function deleteLibrary(token: string, id: number) {
+  const res = await fetch(`${API_URL}/admin/libraries/${id}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) throw new Error("DELETE_LIBRARY_FAILED");
+  return res.json();
+}
+
+export async function scanBucket(token: string, libraryId?: number, mode: string = "incremental") {
   const res = await fetch(`${API_URL}/admin/scan-bucket`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ library_id: libraryId }),
+    body: JSON.stringify({ library_id: libraryId, mode }),
   });
   if (!res.ok) throw new Error("SCAN_BUCKET_FAILED");
   return res.json();

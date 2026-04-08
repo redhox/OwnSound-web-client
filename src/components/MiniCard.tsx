@@ -347,8 +347,8 @@ export function CardSectionAlbum({
   return (
     <ScrollArea className="w-full whitespace-nowrap">
       <div className="flex gap-6 pb-4">
-        {albums.map(album => (
-          <div key={album.id} className="w-40 md:w-48 flex-shrink-0">
+        {albums.map((album, index) => (
+          <div key={`${album.id}-${index}`} className="w-40 md:w-48 flex-shrink-0">
             <CardAlbum
               image={album.cover}
               title={album.name}
